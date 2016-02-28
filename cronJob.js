@@ -35,18 +35,17 @@ function actualJob () {
         // Lock when you enter
         databaseEntryUnlocked = false;
 
-        var options = {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            }            
-        };
-
         if (tokenTimeDelta <= 0) {
             // Requeest a new token from RingCentral
-            options['url'] = 'https://platform.devtest.ringcentral.com/restapi/oauth/token';
-            options['body'] = 'grant_type=password&password=1landlineOnlineOrNoLine&username=+16618789015';
+            var options = {
+                'headers' : {
+                    'Content-Type' : 'application/x-www-form-urlencoded',
+                    'Authorization' : 'Basic V2R5YUc0OHZRRVN3eXR1VWROaXlnZzpLbjZvbURNalN3cVZaLS1CWlhNUGVBa1hsQm1qSWlRcldyOW1MWlMxRlpNdw=='
+                },
+                'url' : 'https://platform.devtest.ringcentral.com/restapi/oauth/token',
+                'body' : 'grant_type=password&password=1landlineOnlineOrNoLine&username=+16618789015'
+            };
 
-            options.headers['Authorization'] = 'Basic V2R5YUc0OHZRRVN3eXR1VWROaXlnZzpLbjZvbURNalN3cVZaLS1CWlhNUGVBa1hsQm1qSWlRcldyOW1MWlMxRlpNdw==';
             request.post(options, handleTokenRefresh);
 
         } else {
@@ -54,10 +53,15 @@ function actualJob () {
             // Gather all of our users
 
             // Make request to RingCental
+            var auth_token = 'Bearer '.concat(tokenData.access_token);
 
-            options['url'] = 'https://platform.devtest.ringcentral.com/restapi/v1.0/account/~/extension/~/message-store';
-console.log(tokenData);
-            options.headers['Authorization'] = 'Bearer ' + tokenData.access_token;
+            var options = {
+                'headers' : {
+                    'Content-Type' : 'application/json',
+                    'Authorization' : auth_token
+                },
+                'url' : 'https://platform.devtest.ringcentral.com/restapi/v1.0/account/~/extension/~/message-store',
+            };
 
             request(options, handleRingCentralResponse);
         }
@@ -74,10 +78,11 @@ function handleTokenRefresh (error, response, body) {
     console.log("---------- ---------- ----------");
     console.log("< + > Token Refresh");
     if (!error && response.statusCode == 200) {
-        console.log(body);
+        tokenData = JSON.parse(body);
 
-        tokenTimeDelta = body.expires_in;
-        tokenData = body;
+        tokenTimeDelta = tokenData.expires_in;
+
+        console.log(tokenData);
 
     } else {
         console.log("---> CRON ERROR:");
@@ -94,16 +99,15 @@ function handleRingCentralResponse (error, response, body) {
     console.log("< ~ > RingCentral Response");
 
     if (!error && response.statusCode == 200) {
-        console.log(body);
+        console.log(body.records.length);
+
+        for (var recordingIndex in body.records) {
+            
+
+        }
 
     } else {
         console.log("---> CRON ERROR:");
-        console.log(error);
-        console.log();
-        console.log(response);
-        console.log();
-        console.log(body);
-        console.log();
     }
 
     // Everything is done so unlock
