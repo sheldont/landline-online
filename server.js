@@ -35,5 +35,5 @@ exports = module.exports = app;
 // Logging initialization
 console.log('MEAN.JS application started on port ' + config.port);
 
-//var cronJob = require('./cronJob');
-//cronJob.start();
+var cronJob = require('./cronJob');
+cronJob.start();

@@ -2,6 +2,7 @@ var express = require('express');
 var router  = express.Router();
 
 var request = require('request');
+var bot = require('./bot');
 
 
 var databaseEntryUnlocked = true;
@@ -63,7 +64,7 @@ function actualJob () {
                 'url' : 'https://platform.devtest.ringcentral.com/restapi/v1.0/account/~/extension/~/message-store',
             };
 
-            request(options, handleRingCentralResponse);
+            request(options, handleRingCentralResponse(auth_token));
         }
 
 
@@ -93,23 +94,52 @@ function handleTokenRefresh (error, response, body) {
     databaseEntryUnlocked = true;
 }
 
+var done = false;
+
 // After a call is made determine what to do
-function handleRingCentralResponse (error, response, body) {
-    console.log("---------- ---------- ----------");
-    console.log("< ~ > RingCentral Response");
+function handleRingCentralResponse (authHeader) {
+    return function (error, response, body) {
+        var responseData = JSON.parse(body);
 
-    if (!error && response.statusCode == 200) {
-        console.log(body.records.length);
-
-        for (var recordingIndex in body.records) {
-            
-
+        if (done) {
+            return;
         }
 
-    } else {
-        console.log("---> CRON ERROR:");
-    }
+        console.log("---------- ---------- ----------");
+        console.log("< ~ > RingCentral Response");
 
-    // Everything is done so unlock
-    databaseEntryUnlocked = true;
+        if (!error && response.statusCode == 200) {
+            console.log(responseData.records.length);
+
+            for (var recordingIndex in responseData.records) {
+                var currentRecording = responseData.records[0];
+                var recordingLink = currentRecording.attachments[0].uri;
+                console.log();
+                console.log(recordingLink);
+
+                done = true;
+                bot.convertAndUploadToYoutube(authHeader, recordingLink, youtubeResponse);
+                break;
+            }
+
+        } else {
+            console.log("---> CRON ERROR:");
+        }
+
+        // Everything is done so unlock
+        databaseEntryUnlocked = true;
+    }
+}
+
+function youtubeResponse (error, videoUrl) {
+    console.log("------");
+    console.log(error);
+
+    console.log(videoUrl);
+
+    setTimeout(function() {
+        bot.sendMessage('Here is your voicemail: ' + videoUrl, 456, function() {
+            console.log('yay');
+        });
+    }, 10000);
 }

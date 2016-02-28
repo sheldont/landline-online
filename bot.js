@@ -59,11 +59,11 @@ function sendMessage(message, token, callback) {
     });
 }
 
-function convertAndUploadToYoutube(audioUrl, callback) {
-  youtube.convertAudioToVideo(audioUrl, './logo.jpg', function(error, videoPath) {
-      youtube.uploadVideo({title: 'Test', from: 'Alex', date: '4/12/2003'}, '/Users/AlexKoren/Code/Web/landline/' + videoPath, function(error, videoId) {
+function convertAndUploadToYoutube(authHeader, audioUrl, callback) {
+  youtube.convertAudioToVideo(authHeader, audioUrl, './logo.jpg', function(error, videoPath) {
+      youtube.uploadVideo({title: 'Test', from: 'Alex', date: '4/12/2003'}, '/Users/trotman/Documents/contract_dev/Landline.Online/landline-online/' + videoPath, function(error, videoId) {
           if (error) return callback(error, null);
-          callback(error, 'http://youtube.com/watch?v=' + videoId);
+          callback(error, 'https://youtube.com/watch?v=' + videoId);
       });
   });
 }
