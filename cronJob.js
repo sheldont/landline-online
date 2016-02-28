@@ -9,6 +9,8 @@ var databaseEntryUnlocked = true;
 var tokenTimeDelta = 0;
 var tokenData = {};
 
+var readVoicemails = {};
+
 // Begin the job
 function startJob () {
     // Implemented to make sure that the data isnt being saved and checked at the same time
@@ -95,6 +97,7 @@ function handleTokenRefresh (error, response, body) {
 }
 
 var done = false;
+var serverStart = true;
 
 // After a call is made determine what to do
 function handleRingCentralResponse (authHeader) {
@@ -112,14 +115,20 @@ function handleRingCentralResponse (authHeader) {
             console.log(responseData.records.length);
 
             for (var recordingIndex in responseData.records) {
-                var currentRecording = responseData.records[0];
+                var currentRecording = responseData.records[recordingIndex];
                 var recordingLink = currentRecording.attachments[0].uri;
+                if (serverStart) {
+                    readVoicemails[recordingLink] = true;
+                    continue;
+                }
+                if (recordingLink in readVoicemails) {
+                    continue;
+                }
                 console.log();
                 console.log(recordingLink);
 
-                done = true;
                 bot.convertAndUploadToYoutube(authHeader, recordingLink, youtubeResponse);
-                break;
+                readVoicemails[recordingLink] = true;
             }
 
         } else {
@@ -128,6 +137,7 @@ function handleRingCentralResponse (authHeader) {
 
         // Everything is done so unlock
         databaseEntryUnlocked = true;
+        serverStart = false;
     }
 }
 
