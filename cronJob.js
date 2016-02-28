@@ -5,6 +5,8 @@ var request = require('request');
 
 
 var databaseEntryUnlocked = true;
+var tokenTimeDelta = 0;
+var tokenData = {};
 
 // Begin the job
 function startJob () {
@@ -24,6 +26,8 @@ module.exports.start = startJob;
 function actualJob () {
     console.log('Job wake up (4 seconds)');
     console.log('unlocked: ', databaseEntryUnlocked);
+    // Deduct how much time has passed
+    tokenTimeDelta -= 5;
 
     if (databaseEntryUnlocked) {
         // Query to the RingCentralAPI to see if there are any new messages
@@ -31,18 +35,33 @@ function actualJob () {
         // Lock when you enter
         databaseEntryUnlocked = false;
 
-        // Gather all of our users
-
-        // Make request to RingCental
         var options = {
-          url: 'http://www.SheldonTrotman.com'/*,
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Content-Length': post_data.length
-          } */
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }            
         };
 
-        request(options, handleRingCentralResponse);
+        if (tokenTimeDelta <= 0) {
+            // Requeest a new token from RingCentral
+            options['url'] = 'https://platform.devtest.ringcentral.com/restapi/oauth/token';
+            options['body'] = 'grant_type=password&password=1landlineOnlineOrNoLine&username=+16618789015';
+
+            options.headers['Authorization'] = 'Basic V2R5YUc0OHZRRVN3eXR1VWROaXlnZzpLbjZvbURNalN3cVZaLS1CWlhNUGVBa1hsQm1qSWlRcldyOW1MWlMxRlpNdw==';
+            request.post(options, handleTokenRefresh);
+
+        } else {
+
+            // Gather all of our users
+
+            // Make request to RingCental
+
+            options['url'] = 'https://platform.devtest.ringcentral.com/restapi/v1.0/account/~/extension/~/message-store';
+console.log(tokenData);
+            options.headers['Authorization'] = 'Bearer ' + tokenData.access_token;
+
+            request(options, handleRingCentralResponse);
+        }
+
 
     } else {
         // Still adding old data so do nothing
@@ -50,10 +69,41 @@ function actualJob () {
 
 }
 
+// Periodically a new token will have to be generated
+function handleTokenRefresh (error, response, body) {
+    console.log("---------- ---------- ----------");
+    console.log("< + > Token Refresh");
+    if (!error && response.statusCode == 200) {
+        console.log(body);
+
+        tokenTimeDelta = body.expires_in;
+        tokenData = body;
+
+    } else {
+        console.log("---> CRON ERROR:");
+        console.log(error);
+    }
+
+    // Everything is done so unlock
+    databaseEntryUnlocked = true;
+}
+
 // After a call is made determine what to do
 function handleRingCentralResponse (error, response, body) {
+    console.log("---------- ---------- ----------");
+    console.log("< ~ > RingCentral Response");
+
     if (!error && response.statusCode == 200) {
-        console.log(body) // Print the body of response.
+        console.log(body);
+
+    } else {
+        console.log("---> CRON ERROR:");
+        console.log(error);
+        console.log();
+        console.log(response);
+        console.log();
+        console.log(body);
+        console.log();
     }
 
     // Everything is done so unlock
